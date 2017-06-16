@@ -28,7 +28,6 @@ public class MainActivity extends AppCompatActivity {
 
         btnLed1= (Button)findViewById(R.id.btnLed1);
         btnLed2= (Button)findViewById(R.id.btnLed2);
-        btnLed3= (Button)findViewById(R.id.btnLed3);
         txtView = (TextView)findViewById(R.id.textView);
 
         //seekLed1 = (SeekBar)findViewById(R.id.seekLed1);
