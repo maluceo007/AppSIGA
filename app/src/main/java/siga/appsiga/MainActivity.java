@@ -28,7 +28,7 @@ public class MainActivity extends AppCompatActivity {
 
         btnLed1= (Button)findViewById(R.id.btnLed1);
         btnLed2= (Button)findViewById(R.id.btnLed2);
-        btnLed3= (Button)findViewById(R.id.btnLed3);
+
         txtView = (TextView)findViewById(R.id.textView);
 
         //seekLed1 = (SeekBar)findViewById(R.id.seekLed1);
@@ -78,15 +78,7 @@ public class MainActivity extends AppCompatActivity {
 
         });
 
-        btnLed3.setOnClickListener(new View.OnClickListener(){
 
-            @Override
-            public void onClick(View v){
-                //Toast.makeText(MainActivity.this, "Button 3 Works", Toast.LENGTH_SHORT).show();
-                RequestUrl("led3");
-            }
-
-        });
 
     }
 
@@ -123,25 +115,22 @@ public class MainActivity extends AppCompatActivity {
                 // set the text on the led 1 button
                 if (result.contains("Led 1 - Ligado")){
                     //btnLed1.setText("Led 1 - ON");
-                    btnLed1.setBackgroundResource(R.drawable.toggle_on);
+                    btnLed1.setBackgroundResource(R.drawable.white_light);
                 }else if (result.contains("Led 1 - Desligado")){
                     //btnLed1.setText("Led 1 - OFF");
-                    btnLed1.setBackgroundResource(R.drawable.toggle_off);
+                    btnLed1.setBackgroundResource(R.drawable.white_light_off);
                 }
 
-                // set the text on the led 1 button
+                // set the text on the led 2 button
                 if (result.contains("Led 2 - Ligado")){
                     //btnLed2.setText("Led 2 - ON");
+                    btnLed2.setBackgroundResource(R.drawable.blue_light);
                 }else if (result.contains("Led 2 - Desligado")){
                     //btnLed2.setText("Led 2 - OFF");
+                    btnLed2.setBackgroundResource(R.drawable.blue_light_off);
                 }
 
-                // set the text on the led 1 button
-                if (result.contains("Led 3 - Ligado")){
-                    //btnLed3.setText("Led 3 - ON");
-                }else if (result.contains("Led 3 - Desligado")){
-                    //btnLed3.setText("Led 3 - OFF");
-                }
+
 
             }else{
                 txtView.setText("Error acessing the arduino...");
