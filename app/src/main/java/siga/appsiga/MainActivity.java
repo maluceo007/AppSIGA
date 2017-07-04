@@ -50,7 +50,7 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
     private boolean btnLed1State = false, btnLed2State = false;
     private TextView txtView, textTemp, textDspMin, textDspMax, textMax, textMin, textLastFeed;
     private SeekBar seekLed1, seekLed2;
-    private int bright1, bright2;
+    private int bright1=0, bright2=0;
     private boolean isBusy = false;//this flag to indicate whether your async task completed or not
     private boolean stop = false;//this flag to indicate whether your button stop clicked
     private Handler handler = new Handler();
@@ -196,7 +196,7 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
 
             @Override
             public void onClick(View v){
-
+                getMessage("led on click" + btnLed2State + " brigh2 " + bright2);
                 isBusy = true;
                 String urlIndex = "led2:";
                 if (btnLed2State){
@@ -231,6 +231,7 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
                 setReference("lastFeed", lastFeed); // set last feed in preferences
                 setUrlString("feed:"); //tell arduino to feed fishies
                 callAsyncTask(getUrlString());
+                getMessage("FEEDME");
             }
         });
 
@@ -240,7 +241,7 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
 
 
 
-    // function used to constatly query JSON data
+    // function used to query JSON data with a delay (1 min)
     public void startHandler(){
 
         handler.postDelayed( new Runnable(){
@@ -248,26 +249,26 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
             @Override
             public void run(){
                 setUrlString("continua:");
-                if (!isBusy) callAsyncTask(getUrlString());
+                if (!isBusy) callAsyncTask(getUrlString()); // call arduino
 
-                if (!stop) startHandler();
+                if (!stop) startHandler(); // redo function
             }
-        },60000);
+        },60000); // 1 minute dealy
 
-    }
+    }//end startHandler
 
-    // call AsyncTask for connecting
+    // call AsyncTask for connecting to arduino
     private void callAsyncTask(String url){
         new GetAsync().execute(url);
-        getMessage("temp int: " + tempInt + " getMin: " + getMin() + " getMax " + getMax());
+
         // check temp with alarm Thresholds, if alarm is on
         if ( getAlarm()) {
             if (tempInt < getMin() || tempInt > getMax()) {
                 displayNotification();
             }
-        }
+        }//end outer if
 
-    }
+    }// end callAsyncTask
 
     // create option menu
     public boolean onCreateOptionsMenu(Menu menu) {
@@ -346,17 +347,27 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
                 JSONObject reader= new JSONObject(stream);
 
                 // Get the JSONObject "coord"...........................
-                //JSONObject coord = reader.getJSONObject("coord");
-                // Get the value of key "lon" under JSONObject "coord"
+                // temperature sensor
                 String temp = reader.getString("temp");
-                tempInt = reader.getInt("temp");
-                // Get the value of key "lat" under JSONObject "coord"
-                String key = reader.getString("res");
+                tempInt = reader.getInt("temp"); // in int
+                // led1 value
+                int led1 = reader.getInt("led1");
+                if (led1 != bright1 ){
+                    bright1 = led1;
+                    setBrightness(seekLed1, led1);
+                    setBntState("led1:");
+                    if (led1>0){btnLed1State = true;}
+                }
+                // led2 value
+                int led2 = reader.getInt("led2");
+                if (led2 != bright2) {
+                    bright2 = led2;
+                    setBrightness(seekLed2, led2);
+                    setBntState("led2:");
+                    if (led2>0){ btnLed2State = false;}
+                }
 
-                txtView.setText("We are processing the JSON data....\n\n");
-                //txtView.setText(txtView.getText()+ "\tcoord...\n");
-                txtView.setText(txtView.getText()+ "\t\ttemp..."+ temp + "\n");
-                txtView.setText(txtView.getText()+ "\t\tkey..."+ key + "\n\n");
+
                 // set text on viewer
                 textTemp.setText(temp+"º");
                 savedTemp = temp;
@@ -551,6 +562,8 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
         setAlarm(alarm); // set alarm value
     }
 
+    // set visibility of the min amd max temp thresholds
+    // in the MainActivity depending on the option
     public void viewAlarmMinMax(){
 
         if (getAlarm()){
@@ -598,7 +611,7 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
 
     }
 
-    //on stop alter state of variable
+    //on stop of activity alter state of variable
     @Override
     public void onStop() {
         super.onStop();
@@ -606,24 +619,4 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
 
     }
 
-
-    /*
-    @Override
-    public void upDateAlarm(TextView view, int msg)
-    {
-        if (view == textDspMin) {
-            TextView txtView = (TextView) findViewById(R.id.textDspMin);
-            txtView.setText(msg);
-        }
-        if (view == textDspMax) {
-            TextView txtView = (TextView) findViewById(R.id.textDspMax);
-            txtView.setText(msg);
-        }
-    }
-*/
-    /*
-    // method to return context value outside MainActivity
-    public static Context getContextOfApplication(){
-        return contextOfApplication;
-    }*/
 }
