@@ -16,7 +16,7 @@ public class Connecting {
 
     private String data= null;
 
-    public String GetArduino (String urlString){
+    public String getArduino (String urlString){
 
         try{
             URL url = new URL(urlString);

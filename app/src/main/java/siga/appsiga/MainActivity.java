@@ -36,14 +36,19 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.sql.Time;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.util.Calendar;
+import java.util.Date;
 import java.util.HashMap;
 
 
 public class MainActivity extends AppCompatActivity implements SharedPreferences.OnSharedPreferenceChangeListener {
 
-    private Button btnLed1, btnLed2;
+    private Button btnLed1, btnLed2, btnFeedMe;
     private boolean btnLed1State = false, btnLed2State = false;
-    private TextView txtView, textTemp, textDspMin, textDspMax, textMax, textMin;
+    private TextView txtView, textTemp, textDspMin, textDspMax, textMax, textMin, textLastFeed;
     private SeekBar seekLed1, seekLed2;
     private int bright1, bright2;
     private boolean isBusy = false;//this flag to indicate whether your async task completed or not
@@ -53,12 +58,15 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
     private String ip = "http://192.168.1.10/";
     private String urlString;
     private int min, max;
-    int number;
+    private int tempInt;
     private String savedTemp;
     private SharedPreferences sharedPreferences, sp;
     private boolean alarm; // temperature alarm
     Notification.Builder notification;
     private static final int uniqueID = 456123; //id for notification of alarm
+    static boolean active = false; // static variable to see if activity is open
+    // the string representation of date (month/day/year)
+    DateFormat df = new SimpleDateFormat("EEE HH:mm");
     //public static Context contextOfApplication; // variable to be access in non-activity class
     //private SwitchPreference prefMinMax;
 
@@ -112,6 +120,7 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
 
         btnLed1= (Button)findViewById(R.id.btnLed1);
         btnLed2= (Button)findViewById(R.id.btnLed2);
+        btnFeedMe = (Button)findViewById(R.id.btnFeeder);
 
         txtView = (TextView)findViewById(R.id.textView);
         textTemp = (TextView) findViewById(R.id.textTemp);
@@ -119,6 +128,7 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
         textDspMax = (TextView) findViewById(R.id.textDspMax);
         textMax = (TextView) findViewById(R.id.textMax);
         textMin = (TextView) findViewById(R.id.textMin);
+        textLastFeed = (TextView) findViewById(R.id.textLastFeed);
 
         seekLed1 = (SeekBar)findViewById(R.id.seekLed1);
         getSeekValue (seekLed1 );
@@ -145,10 +155,14 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
         loadAlarm(); // load alarm boolean option on/off
         loadAlarmSetgs(); // load alarm setting
         viewAlarmMinMax(); // show or hide alarm views
+        textLastFeed.setText(getReference("lastFeed"));
 
         //notification information
         notification = new Notification.Builder(this);
         notification.setAutoCancel(true);
+
+
+
 
         /* comment before new changes */
         btnLed1.setOnClickListener(new View.OnClickListener(){
@@ -173,7 +187,7 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
 
 
 
-                setReference("currentTemp",  savedTemp);
+                //setReference("currentTemp",  savedTemp);
             }
 
         });
@@ -197,7 +211,7 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
                 setBntState("led2:");
                 setBrightness(seekLed2, bright2);
                 isBusy = false;
-                getMessage(getReference("currentTemp"));
+
 
             }
 
@@ -205,7 +219,24 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
 
         });
 
+         /* comment before new changes */
+        btnFeedMe.setOnClickListener(new View.OnClickListener(){
+
+            @Override
+            public void onClick(View v) {
+
+                Date date = Calendar.getInstance().getTime();
+                String lastFeed = df.format(date);
+                textLastFeed.setText(lastFeed);
+                setReference("lastFeed", lastFeed); // set last feed in preferences
+                setUrlString("feed:"); //tell arduino to feed fishies
+                callAsyncTask(getUrlString());
+            }
+        });
+
     }// end onCreate class
+
+
 
 
 
@@ -226,7 +257,17 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
     }
 
     // call AsyncTask for connecting
-    private void callAsyncTask(String url){ new GetAsync().execute(url); }
+    private void callAsyncTask(String url){
+        new GetAsync().execute(url);
+        getMessage("temp int: " + tempInt + " getMin: " + getMin() + " getMax " + getMax());
+        // check temp with alarm Thresholds, if alarm is on
+        if ( getAlarm()) {
+            if (tempInt < getMin() || tempInt > getMax()) {
+                displayNotification();
+            }
+        }
+
+    }
 
     // create option menu
     public boolean onCreateOptionsMenu(Menu menu) {
@@ -308,7 +349,7 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
                 //JSONObject coord = reader.getJSONObject("coord");
                 // Get the value of key "lon" under JSONObject "coord"
                 String temp = reader.getString("temp");
-                int temp2 = reader.getInt("temp");
+                tempInt = reader.getInt("temp");
                 // Get the value of key "lat" under JSONObject "coord"
                 String key = reader.getString("res");
 
@@ -316,15 +357,13 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
                 //txtView.setText(txtView.getText()+ "\tcoord...\n");
                 txtView.setText(txtView.getText()+ "\t\ttemp..."+ temp + "\n");
                 txtView.setText(txtView.getText()+ "\t\tkey..."+ key + "\n\n");
-
-                textTemp.setText(temp);
+                // set text on viewer
+                textTemp.setText(temp+"º");
                 savedTemp = temp;
 
                // int temp2 = Integer.valueOf(savedTemp);
 
-                if ( temp2 < getMin() || temp2 > getMax()  ){
-                    displayNotification();
-                }
+
 /*
                     // Get the JSONObject "sys".........................
                     JSONObject sys = reader.getJSONObject("sys");
@@ -487,7 +526,7 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
 
     public String getReference(String key) {
         sharedPreferences = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
-        return sharedPreferences.getString(key, "string not found");
+        return sharedPreferences.getString(key, "");
     }
     public void getMessage ( String msg){
         Toast.makeText(getApplicationContext(), msg, Toast.LENGTH_SHORT).show();
@@ -536,10 +575,12 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
             notification.setWhen(System.currentTimeMillis());
             notification.setContentTitle("Aquarium Notification");
             notification.setContentText("The temperature as past thresholds!");
-            //send to home screen after notification is selected
-            Intent intent = new Intent (this,  MainActivity.class);
-            PendingIntent pendingIntent= PendingIntent.getActivity(this,0,intent,PendingIntent.FLAG_UPDATE_CURRENT);
-            notification.setContentIntent(pendingIntent);
+            if (!active) {
+                //send to home screen after notification is selected
+                Intent intent = new Intent(this, MainActivity.class);
+                PendingIntent pendingIntent = PendingIntent.getActivity(this, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT);
+                notification.setContentIntent(pendingIntent);
+            }
             //build notification and issue it
             NotificationManager notificationManager = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
             notificationManager.notify(uniqueID, notification.build());
@@ -547,6 +588,21 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
             //TODO notification prior to android jellybeans.
         }
 
+
+    }
+    // on start active initiate variable for notification
+    @Override
+    public void onStart() {
+        super.onStart();
+        active = true;
+
+    }
+
+    //on stop alter state of variable
+    @Override
+    public void onStop() {
+        super.onStop();
+        active = false;
 
     }
 

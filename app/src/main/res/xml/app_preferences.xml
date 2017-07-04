@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:preference="http://schemas.android.com/apk/res-auto">
+
+    <PreferenceCategory
+        android:title="TEMPERATURE">
+
+        <SwitchPreference
+            android:key="temp_alarm"
+            android:defaultValue="false"
+            android:title="@string/set_alarm" />
+
+
+
+        <siga.appsiga.NumberPickerPreference
+            android:defaultValue="@integer/number_default_value"
+            android:key="temp_min"
+            android:title="@string/temp_min"
+            android:dependency="temp_alarm"
+            preference:limit="15"
+            preference:pickedId="min"
+            preference:wrapSelectorWheel="false"/>
+
+
+
+        <siga.appsiga.NumberPickerPreference
+            android:defaultValue="@integer/number_default_value"
+            android:key="temp_max"
+            android:title="@string/temp_max"
+            android:dependency="temp_alarm"
+            preference:pickedId="max"
+            preference:limit="30"
+            preference:wrapSelectorWheel="false"/>
+
+
+
+    </PreferenceCategory>
+    <!--
+    <PreferenceCategory
+        android:title="FEEDING">
+
+
+        <Preference
+            android:key="first_feeding"
+
+            android:summary="Set time for first feeding"
+            android:title="First feeding" />
+
+        <Preference
+            android:key="second_feeding"
+
+            android:summary="Set time for second feeding"
+            android:title="Second feeding" />
+
+    </PreferenceCategory>
+    -->
+</PreferenceScreen>
